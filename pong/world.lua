@@ -5,7 +5,7 @@ local Body = require(BASEDIR.."body")
 
 local World = class("pong_world")
 
-function World:initialize(w, h, cell)
+function World:initialize(cell, w, h)
 	self.width = w or love.graphics.getWidth()
 	self.height = h or love.graphics.getHeight()
 	self.cell = cell or 100

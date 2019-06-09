@@ -1,14 +1,14 @@
 local BASEDIR = (...):match("(.-)[^%.]+$")
 local SAT = require(BASEDIR.."SAT")
 
-local SpatialHash = class("cherry_pong_SpatialHash")
+local SpatialHash = class("pong_spatialhash")
 
 function SpatialHash:initialize(w, h, cell)
 	self.width = w or love.graphics.getWidth()
 	self.height = h or love.graphics.getHeight()
 	self.cell = cell or 100
-	self.row = math.ceil(self.height/self.cell)
-	self.col = math.ceil(self.width/self.cell)
+	self.row = math.ceil(self.height / self.cell)
+	self.col = math.ceil(self.width / self.cell)
 	self.grids = {}
 	self.objectCount = {}
 	self.defaultFilter = function(object) return true end
@@ -107,8 +107,8 @@ function SpatialHash:reset(newSize)
 end
 
 function SpatialHash:gridCoords(x, y)
-	local col = math.ceil(x/self.cell)
-	local row = math.ceil(y/self.cell)
+	local col = math.ceil(x / self.cell)
+	local row = math.ceil(y / self.cell)
 	if row < 0 then row = 1 end
 	if col < 0 then col = 1 end
 	if row > self.row then row = self.row end
@@ -247,47 +247,19 @@ function SpatialHash:update(object, old_x1, old_y1, old_x2, old_y2, new_x1, new_
 	end
 end
 
---[[
---Old Version
-function SpatialHash:retrieve(object, filter)
-	local gridsIndex = self:getCoverGrids(object)
-	local ret = {}
-	local flag = {}
-	for i = 1, #gridsIndex do
-		local g = gridsIndex[i]
-		for k, v in pairs(self.grids[g.row][g.col]) do
-			if k ~= object and v ~= nil and flag[v] ~= true then
-				if filter then
-					if filter(v) and SAT.isCollision(object, v) then
-						ret[#ret+1] = v
-						flag[v] = true
-					end
-				else
-					if self.defaultFilter(v) and SAT.isCollision(object, v) then
-						ret[#ret+1] = v
-						flag[v] = true
-					end
-				end
-			end
-		end
-	end
-	flag = nil
-	return ret
-end
-]]
-
-
--- local helper function for rough collision detection
-local function AABBDetection(shape1, shape2)
-	local ax1, ay1, ax2, ay2 = shape1:boundBox()
-	local bx1, by1, bx2, by2 = shape2:boundBox()
+----------------------------------
+--local helper function for rough collision detection
+----------------------------------
+local function AABBDetection(body1, body2)
+	local ax1, ay1, ax2, ay2 = body1:boundBox()
+	local bx1, by1, bx2, by2 = body2:boundBox()
 	if ax1 > bx2 or ax2 < bx1 or ay1 > by2 or ay2 < by1 then
 		return false
 	end
 	return true
 end
 
-function SpatialHash:retrieveCollisions(object, filter)
+function SpatialHash:retrieveCollision(object, filter)
 	local gridsIndex = self:getCoverGrids(object)
 	local ret = {}
 	local flag = {}
@@ -299,18 +271,16 @@ function SpatialHash:retrieveCollisions(object, filter)
 					if filter(v) then
 						if AABBDetection(object, v) then
 							if SAT.isCollided(object, v) then
-								ret[#ret+1] = v
+								ret[#ret + 1] = v
 								flag[v] = true
 							end
 						end
 					end
 				else
 					if self.defaultFilter(v) then
-						if AABBDetection(object, v) then
-							if SAT.isCollided(object, v) then
-								ret[#ret+1] = v
-								flag[v] = true
-							end
+						if AABBDetection(object, v) and SAT.isCollided(object, v) then
+							ret[#ret + 1] = v
+							flag[v] = true
 						end
 					end
 				end
@@ -329,7 +299,7 @@ function SpatialHash:neighborhood(object)
 		local g = gridsIndex[i]
 		for k, v in pairs(self.grids[g.row][g.col]) do
 			if k ~= object and v ~= nil and flag[v] ~= true then
-				ret[#ret+1] = v
+				ret[#ret + 1] = v
 				flag[v] = true
 			end
 		end

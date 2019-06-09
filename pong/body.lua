@@ -1,12 +1,14 @@
 
---Helper function about vector
+----------------------------------
+--Helper function for vector
+----------------------------------
 local function vecLength(vx, vy)
-	return math.sqrt(vx^2+vy^2)
+	return math.sqrt(vx ^ 2 + vy ^ 2)
 end
 
 local function vecNormalize(vx, vy)
 	local len = vecLength(vx, vy)
-	return vx/len, vy/len
+	return vx / len, vy / len
 end
 
 local function vecPerpendicular(vx, vy)
@@ -19,82 +21,33 @@ end
 
 local function vecRotate(vx, vy, phi, x, y)
 	local cos, sin = math.cos(phi), math.sin(phi)
-	vx, vy = (vx-x)*cos+(vy-y)*sin+x, (vy-y)*cos-(vx-x)*sin+y
+	vx, vy = (vx - x) * cos + (vy - y) * sin + x, (vy - y) * cos - (vx - x) * sin + y
 	return vx, vy
 end
 
 local function vecMul(vx1, vy1, vx2, vy2)
-	return vx1*vx2+vy1*vy2
+	return vx1 * vx2 + vy1 * vy2
 end
 
 local function vecCross(vx1, vy1, vx2, vy2)
-	return vx1*vy2-vx2*vy1
+	return vx1 * vy2 - vx2 * vy1
 end
 
-local BaseShape = class("cherry_pong_BaseShape")
-BaseShape.static.total = 0
-function BaseShape:initialize()
-	self.pointSet = {}
-	BaseShape.static.total = BaseShape.static.total+1
-	self.shapeID = BaseShape.static.total
-end
-
---[[function BaseShape:getAxis()
-	if #self.pointSet == 1 then
-		return {self.pointSet[1]:normal()}
-	end
-	local ret = {}
-	for i = 1, #self.pointSet do
-		ret[#ret+1] = (self.pointSet[i]-self.pointSet[i-1]):normal()
-	end
-	return ret
-end]]
-
-function BaseShape:drawBound()
-	local x, y, w, h = self:boundBox()
-	w = w-x
-	h = h-y
-	love.graphics.rectangle("line", x, y, w, h)
-end
-
-function BaseShape:clone()
-end
-
-function BaseShape:typeOf()
-	return self.class.name
-end
-
-function BaseShape:__eq(a)
-	return self.shapeID == a.shapeID
-end
-
-function BaseShape:__tostring()
-	return string.format(
-		"%s - %d",
-		self.class.name, self.shapeID)
-end
-
-local Circle = class("pong_circle", BaseShape)
+local Circle = class("pong_circle")
 
 function Circle:initialize(x, y, r)
-	BaseShape.initialize(self)
 	self.cx = x
 	self.cy = y
 	self.r = r
 end
 
 function Circle:draw(drawmode)
-	if not drawmode then
-		love.graphics.circle(m, self.cx, self.cy, self.r)
+	drawmode = dramode or "fill"
+	if drawmode ~= "fill" and drawmode ~= "line" then
+		error("Error: Unknown drawmode - " .. tostring(drawmode))
 		return
 	end
-	if drawmode == "fill" then
-		love.graphics.circle(m, self.cx, self.cy, self.r)
-	elseif drawmode == "line" then
-		love.graphics.circle(m, self.cx, self.cy, self.r)
-	else
-		error("Error: Unknown drawmode - " .. tostring(drawmode))
-	end
+	love.graphics.circle(drawmode, self.cx, self.cy, self.r)
 end
 
 function Circle:getAxis()
@@ -138,49 +91,10 @@ function Circle:clone()
 	return Circle(self.cx, self.cy, self.r)
 end
 
-
-local Capsule = class("pong_capsule")
-function Capsule:initialize(width, height, cx, cy, rotation)
-
-	self.height = height
-	self.width = width
-
-	self.cx = cx
-	self.cy = cy
-
-	self.keypoints = {
-		{self.cx - self.width / 2, self.cy}
-		{self.cx + self.width / 2, self.cy}
-	}
-	
-	self.rotation = rotation or 0
-end
-
-function Capsule:draw()
-	love.graphics.circle("fill", self.keypoints[1][1], self.keypoints[1][2], self.height)
-	love.graphics.circle("fill", self.keypoints[2][1], self.keypoints[2][2], self.height)
-	love.graphics.rectangle("fill", self.keypoints[1][1], self.keypoints[1][2] - self.height,
-									self.keypoints[2][1], self.keypoints[2][2] + self.height)
-end
-
-function Capsule:boundBox()
-	return 	self.keypoints[1][1], self.keypoints[1][2] - self.height,
-			self.keypoints[2][1], self.keypoints[2][2] + self.height
-end
-
-function Capsule:move(disX, disY)
-	self.cx = self.cx + disX
-	self.cy = self.cy + disY
-end
-
-function Capsule:moveTo(x, y)
-end
-
-local ConvexPolygon = class("cherry_pong_ConvexPolygon", BaseShape)
+local ConvexPolygon = class("pong_convexPolygon")
 function ConvexPolygon:initialize(...)
 	assert(#{...} >= 6 and #{...} % 2 == 0, 
-		"The vertexes of polygon must more than 6")
-	BaseShape.initialize(self)
+		"Error: The vertexes of polygon must more than 6")
 
 	self.cx = 0
 	self.cy = 0
@@ -310,8 +224,6 @@ function ConvexPolygon:center()
 	return self.cx, self.cy
 end
 
---[A] 2019.01.01 ConcavePolygon 未实现
-
 local ConcavePolygonHelper = {}
 
 function ConcavePolygonHelper.edges(vertexes)
@@ -422,11 +334,21 @@ end]]
 --	ConvexPolygon.initialize(self, ...)
 --end
 
-local Point = class("cherry_pong_Point", BaseShape)
+local Point = class("pong_point")
 function Point:initialize(x, y)
-	BaseShape.initialize(self)
 	self.cx = x
 	self.cy = y
+end
+
+function Circle:getAxis()
+	local x, y = vecNormal(self.cx, self.cy)
+	return {{x, y}}
+end
+
+function Point:project(axisX, axisY)
+	axisX, axisY = vecNormalize(axisX, axisY)
+	local tmp = vecMul(self.cx, self.cy, axisX, axisY)
+	return {max = tmp, min = tmp}
 end
 
 function Point:move(disX, disY)
@@ -447,27 +369,42 @@ function Point:position()
 	return self.cx, self.cy
 end
 
-function Point:project(axisX, axisY)
-	axisX, axisY = vecNormalize(axisX, axisY)
-	local tmp = vecMul(self.cx, self.cy, axisX, axisY)
-	return {max = tmp, min = tmp}
-end
-
 function Point:draw()
 	love.graphics.points(self.cx, self.cy)
 end
 
-local Line = class("cherry_pong_Line", BaseShape)
-function Line:initialize(x1, y1, x2, y2)
-	BaseShape.initialize(self)
+local Segment = class("pong_segment")
+function Segment:initialize(x1, y1, x2, y2, phi)
+	if zeta then
+		local x, y, p1, p2, p = x1, y1, x2, y2,phi
+		self.x1, self.y1 = x - p1 * math.sin(phi), y - p1 * math.cos(phi)
+		self.x2, self.y2 = x + p2 * math.sin(phi), y + p2 * math.cos(phi)
+		self.cx, self.cy = (x1 + x2) / 2, (y1 + y2) / 2
+		return
+	end
 	self.x1 = x1
 	self.y1 = y1
 	self.x2 = x2
 	self.y2 = y2
-	self.cx, self.cy = (x1 + x2)/2, (y1 + y2)/2
+	self.cx, self.cy = (x1 + x2) / 2, (y1 + y2) / 2
 end
 
-function Line:move(disX, disY)
+function Segment:getAxis()
+	local x, y = vecNormal(self.x2 - self.x1, self.y2 - self.y1)
+	return {{x, y}}
+end
+
+function Segment:project(axisX, axisY)
+	axisX, axisY = vecNormalize(axisX, axisY)
+	local min = vecMul(self.x1, self.y1, axisX, axisY)
+	local max = min
+	local proj = vecMul(self.x2, self.y2, axisX, axisY)
+	if proj < min then min = proj end
+	if proj > max then max = proj end
+	return {max = max, min = min}
+end
+
+function Segment:move(disX, disY)
 	self.x1 = self.x1 + disX
 	self.y1 = self.y1 + disY
 	self.x2 = self.x2 + disX
@@ -476,13 +413,13 @@ function Line:move(disX, disY)
 	self.cy = self.cy + disY
 end
 
-function Line:moveTo(x, y)
+function Segment:moveTo(x, y)
 	local disX = x - self.cx
 	local disY = y - self.cy
 	self:move(disX, disY)
 end
 
-function Line:rotate(phi, x, y)
+function Segment:rotate(phi, x, y)
 	x = x or self.cx
 	y = y or self.cy
 	local rx1, ry1 = vecRotate(self.x1, self.y1, phi, x, y)
@@ -492,7 +429,7 @@ function Line:rotate(phi, x, y)
 	self.cx, self.cy = (self.x1 + self.x2) / 2, (self.y1 + self.y2) / 2
 end
 
-function Line:scale(s)
+function Segment:scale(s)
 	s = s or 1
 	local dx, dy = self.x1 - self.cx, self.y1 - self.cy
 	dx = dx * s + self.cx
@@ -504,7 +441,7 @@ function Line:scale(s)
 	self.x2, self.y2 = dx, dy
 end
 
-function Line:boundBox()
+function Segment:boundBox()
 	local x1, y1 = self.x1, self.y1
 	local x2, y2 = x1, y1
 	if self.x2 < x1 then x1 = self.x2 end
@@ -514,27 +451,12 @@ function Line:boundBox()
 	return x1, y1, x2, y2
 end
 
-function Line:center()
+function Segment:center()
 	return self.cx, self.cy
 end
 
-function Line:getAxis()
-	local x, y = vecNormal(self.x2-self.x1, self.y2 - self.y1)
-	return {{x, y}}
-end
-
-function Line:draw()
+function Segment:draw()
 	love.graphics.line(self.x1, self.y1, self.x2, self.y2)
-end
-
-function Line:project(axisX, axisY)
-	axisX, axisY = vecNormalize(axisX, axisY)
-	local min = vecMul(self.x1, self.y1, axisX, axisY)
-	local max = min
-	local proj = vecMul(self.x2, self.y2, axisX, axisY)
-	if proj < min then min = proj end
-	if proj > max then max = proj end
-	return {max = max, min = min}
 end
 
 --[A] 2019.01.01 移除Rectangle class 修改为Rectangle function
@@ -564,7 +486,7 @@ function RegularPolygon(n, r, x, y)
 	return ConvexPolygon(unpack(points))
 end
 
-local ShapeGroup = class("cherry_pong_ShapeGroup")
+local ShapeGroup = class("pong_shapegroup")
 function ShapeGroup:initialize(...)
 	self.shapes = {}
 
@@ -648,7 +570,6 @@ end
 local Body = {
 	Circle = Circle,
 	ConvexPolygon = ConvexPolygon,
-	ConcavePolygon = ConcavePolygon,
 	Polygon = Polygon,
 	Point = Point,
 	Line = Line,
