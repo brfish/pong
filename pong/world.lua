@@ -1,15 +1,16 @@
 local BASEDIR = (...):match("(.-)[^%.]+$")
 
-local SpatialHash = require(BASEDIR.."spatialhash")
-local Body = require(BASEDIR.."body")
-
+local class = require(BASEDIR .. "class")
+local SpatialHash = require(BASEDIR .. "spatialhash")
+local Prototypes = require(BASEDIR .. "collidable").Prototypes
+local Helper = require(BASEDIR .. "collidable").Helper
 local World = class("pong_world")
 
-function World:initialize(cell, w, h)
+function World:init(cell, w, h)
 	self.width = w or love.graphics.getWidth()
 	self.height = h or love.graphics.getHeight()
 	self.cell = cell or 100
-	self.spatialHash = SpatialHash(self.width, self.height, self.cell)
+	self.spatialHash = SpatialHash.new(self.cell, self.width, self.height)
 end
 
 function World:setDefaultFilter(filter)
@@ -20,51 +21,40 @@ function World:getDefaultFilter()
 	return self.spatialHash:getDefaultFilter()
 end
 
-function World:newRectangle(x, y, w, h)
-	local body = Body.Rectangle(x, y, w, h)
-	self.spatialHash:register(body)
-	return body
-end
-
 function World:newCircle(x, y, r)
-	local body = Body.Circle(x, y, r)
-	self.spatialHash:register(body)
-	return body
+	local collidable = Prototypes.Circle.new(x, y, r)
+	self.spatialHash:register(collidable)
+	return collidable
 end
 
-function World:newCapsule(width, height, cx, cy, rotation)
-	local body = Body.Capsule(width, height, cx, cy, rotation)
-	self.spatialhash:register(body)
-	return body
+function World:newConvexPolygon(...)
+	local collidable = Prototypes.ConvexPolygon.new(...)
+	self.spatialHash:register(collidable)
+	return collidable
 end
 
-function World:newPolygon(...)
-	local body = Body.Polygon(...)
-	self.spatialHash:register(body)
-	return body
+function World:newSegment(x1, y1, x2, y2)
+	local collidable = Prototypes.Segment.new(x1, y1, x2, y2)
+	self.spatialHash:register(collidable)
+	return collidable
 end
 
 function World:newPoint(x, y)
-	local body = Body.Point(x, y)
-	self.spatialHash:register(body)
-	return body
+	local collidable = Prototypes.Point.new(x, y)
+	self.spatialHash:register(collidable)
+	return collidable
 end
 
-function World:newLine(x1, y1, x2, y2)
-	local body = Body.Line(x1, y1, x2, y2)
-	self.spatialHash:register(body)
-	return body
+function World:newRectangle(x, y, w, h)
+	local collidable = Helper.newRectangle(x, y, w, h)
+	self.spatialHash:register(collidable)
+	return collidable
 end
 
 function World:newRegularPolygon(n, r, x, y)
-	local body = Body.RegularPolygon(n, r, x, y)
-	self.spatialHash:register(body)
-	return body
-end
-
-function World:newGroup(...)
-	local group = Body.Group(...)
-	return group
+	local collidable = Helper.newRegularPolygon(n, r, x, y)
+	self.spatialHash:register(collidable)
+	return collidable
 end
 
 function World:drawGrids()
@@ -72,7 +62,7 @@ function World:drawGrids()
 end
 
 function World:collisions(object, filter)
-	return self.spatialHash:retrieveCollisions(object, filter or self:getDefaultFilter())
+	return self.spatialHash:collisions(object, filter or self:getDefaultFilter())
 end
 
 function World:isObjectCollided(object)
