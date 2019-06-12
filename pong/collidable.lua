@@ -66,24 +66,28 @@ function Collidable:move(disX, disY)
 	self:moveTo(cx + disX, cy + disY)
 end
 
-function Collidable:scale(scale)
-	self.transform:scale(scale)
+function Collidable:scale(sx, sy)
+	self.transform:scale(sx, sy)
 end
 
 function Collidable:rotate(angle)
-	self.angle = self.angle + angle
-	if self.angle >= math.pi * 2 then
-		self.angle = self.angle - math.pi * 2
-	end
+	self.transform:rotate(angle)
 end
 
 function Collidable:rotateAroundPoint(angle, x, y)
 	local cx, cy = self.transform:getPosition()
-	cx, cy = vec.rotate(cx, cy, angle, x, y)
-	self.transform:setPosition(cx, cy)
+	local tx, ty = vec.rotate(cx, cy, angle, x, y)
+	self.transform:setPosition(tx, ty)
 end
 
 function Collidable:draw()
+end
+
+function Collidable:drawAABB()
+	local x, y, w, h = self:AABB()
+	w = w - x
+	h = h - y
+	love.graphics.rectangle("line", x, y, w, h)
 end
 
 
@@ -120,6 +124,10 @@ end
 function PnCircle:rotate()
 end
 
+function PnCircle:scale(s)
+	self.transform:scale(s)
+end
+
 function PnCircle:getRadius()
 	return self.radius * self.transform:getScale()
 end
@@ -135,7 +143,7 @@ function PnCircle:draw(drawmode)
 		return
 	end
 	local cx, cy = self.transform:getPosition()
-	love.graphics.circle(drawmode, cx, cy, self.radius)
+	love.graphics.circle(drawmode, cx, cy, self:getRadius())
 end
 
 
@@ -161,6 +169,7 @@ function PnConvexPolygon:init(...)
 			select(i * 2 - 1, ...) - centerX,
 			select(i * 2, ...) - centerY}
 	end
+	self.fixedValues[0] = self.fixedValues[self.vertexesCounts]
 end
 
 function PnConvexPolygon:getVertexCounts()
@@ -171,8 +180,8 @@ function PnConvexPolygon:getVertex(vertexId)
 	local cx, cy = self.transform:getPosition()
 	local scale = self.transform:getScale()
 	local rx, ry = vec.rotate(
-			self.fixedValues[vertexId][1] + cx * scale,
-			self.fixedValues[vertexId][2] + cy * scale,
+			self.fixedValues[vertexId][1] * scale + cx,
+			self.fixedValues[vertexId][2] * scale + cy,
 			self.transform:getRotationAngle(),
 			cx, cy
 			)

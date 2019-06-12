@@ -83,7 +83,7 @@ function SpatialHash:update(object, old_x1, old_y1, old_x2, old_y2, new_x1, new_
 end
 
 function SpatialHash:register(object)
-	local registerFunction = {"moveTo", "rotate", "scale"}
+	local registerFunction = {"moveTo", "rotate", "scale", "rotateAroundPoint"}
 	for _, functionName in ipairs(registerFunction) do
 		if object[functionName] then
 			local oldFunction = object[functionName]

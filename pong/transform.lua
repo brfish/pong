@@ -4,20 +4,26 @@ local class = require(BASEDIR .. "class")
 
 local Transform = class("pong_transform")
 
-function Transform:init(x, y, angle, scale)
+function Transform:init(x, y, angle, scaleX, scaleY)
 	self.x = x or 0
 	self.y = y or 0
 	self.angle = angle or 0
-	self.scale = scale or 1
+	self.scaleX = scaleX or 1
+	self.scaleY = scaleY or self.scaleX
 end
 
-function Transform:rotate(phi)
-	self.angle = self.angle + phi
+function Transform:rotate(angle)
+	self.angle = self.angle + angle
+	if self.angle >= math.pi * 2 then
+		self.angle = self.angle - math.pi * 2
+	end
 end
 
-function Transform:scale(scale)
-	scale = scale or 1
-	self.scale = self.scale * scale
+function Transform:scale(sx, sy)
+	sx = sx or 1
+	sy = sy or sx
+	self.scaleX = self.scaleX * sx
+	self.scaleY = self.scaleY * sy
 end
 
 function Transform:setPosition(x, y)
@@ -28,8 +34,11 @@ function Transform:setRotationAngle(phi)
 	self.angle = phi or 0
 end
 
-function Transform:setScale(scale)
-	self.scale = scale
+function Transform:setScale(sx, sy)
+	sx = sx or 1
+	sy = sy or sx
+	self.sx = sx
+	self.sy = sy
 end
 
 function Transform:getPosition()
@@ -41,7 +50,10 @@ function Transform:getRotationAngle()
 end
 
 function Transform:getScale()
-	return self.scale
+	return self.scaleX, scaleY
+end
+
+function Transform:getOriginalSize()
 end
 
 return Transform
