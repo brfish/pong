@@ -1,7 +1,8 @@
 local BASEDIR = (...):match("(.-)[^%.]+$")
 
-local CollisionPrototypes = require("pong.collidable").Protypes
-local Collidable = require("pong.collidable").Collidable
+local CollisionPrototypes = require(BASEDIR .. "pong.collidable").Protypes
+local Collidable = require(BASEDIR .. "pong.collidable").Collidable
+local Helper = require(BASEDIR .. "pong.collidable").Helper
 local Detection = require(BASEDIR.."pong.detection")
 local SpatialHash = require(BASEDIR.."pong.spatialhash")
 local World = require(BASEDIR.."pong.world")
@@ -17,38 +18,34 @@ function pong.newWorld(cell, w, h)
 	return World.new(cell, w, h)
 end
 
-function pong.newCircle(world, x, y, r)
-	local collidable = world:newCircle(x, y, r)
+function pong.newCircle(x, y, r)
+	local collidable = CollisionPrototypes.Circle(x, y, r)
 	return collidable
 end
 
-function pong.newPolygon(world, ...)
-	local collidable = world:newPolygon(...)
+function pong.newPolygon(...)
+	local collidable = CollisionPrototypes.Polygon(...)
 	return collidable
 end
 
-function pong.newSegment(world, x1, y1, x2, y2)
-	local collidable = world:newSegment(x1, y1, x2, y2)
+function pong.newSegment(x1, y1, x2, y2)
+	local collidable = CollisionPrototypes.Segment(x1, y1, x2, y2)
 	return collidable
 end
 
-function pong.newPoint(world, x, y)
-	local collidable = world:newPoint(x, y)
+function pong.newPoint(x, y)
+	local collidable = CollisionPrototypes.Point(x, y)
 	return collidable
 end
 
-function pong.newRectangle(world, x, y, w, h)
-	local collidable = world:newRectangle(x, y, w, h)
+function pong.newRectangle(x, y, w, h)
+	local collidable = Helper.newRectangle(x, y, w, h)
 	return collidable
 end
 
-function pong.newRegularPolygon(world, n, r, x, y)
-	local collidable = world:newRegularPolygon(n, r, x, y)
+function pong.newRegularPolygon(n, r, x, y)
+	local collidable = Helper.newRegularPolygon(n, r, x, y)
 	return collidable
-end
-
-function pong.collisions(object)
-	return defaultWorld:collisions(object)
 end
 
 pong.debug = {}
