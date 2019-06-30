@@ -23,6 +23,10 @@ function World:getDefaultFilter()
 	return self.spatialHash:getDefaultFilter()
 end
 
+function World:add(collidable)
+	self.spatialHash:register(collidable)
+end
+
 function World:newCircle(x, y, r)
 	local collidable = Prototypes.Circle.new(x, y, r)
 	self.spatialHash:register(collidable)

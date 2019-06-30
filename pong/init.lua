@@ -1,6 +1,6 @@
 local BASEDIR = (...):match("(.-)[^%.]+$")
 
-local CollisionPrototypes = require(BASEDIR .. "pong.collidable").Protypes
+local CollisionPrototypes = require(BASEDIR .. "pong.collidable").Prototypes
 local Collidable = require(BASEDIR .. "pong.collidable").Collidable
 local Helper = require(BASEDIR .. "pong.collidable").Helper
 local Detection = require(BASEDIR.."pong.detection")
@@ -19,22 +19,22 @@ function pong.newWorld(cell, w, h)
 end
 
 function pong.newCircle(x, y, r)
-	local collidable = CollisionPrototypes.Circle(x, y, r)
+	local collidable = CollisionPrototypes.Circle.new(x, y, r)
 	return collidable
 end
 
 function pong.newPolygon(...)
-	local collidable = CollisionPrototypes.Polygon(...)
+	local collidable = CollisionPrototypes.Polygon.new(...)
 	return collidable
 end
 
 function pong.newSegment(x1, y1, x2, y2)
-	local collidable = CollisionPrototypes.Segment(x1, y1, x2, y2)
+	local collidable = CollisionPrototypes.Segment.new(x1, y1, x2, y2)
 	return collidable
 end
 
 function pong.newPoint(x, y)
-	local collidable = CollisionPrototypes.Point(x, y)
+	local collidable = CollisionPrototypes.Point.new(x, y)
 	return collidable
 end
 
