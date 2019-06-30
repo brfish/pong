@@ -4,9 +4,11 @@ local class = require(BASEDIR .. "class")
 local SpatialHash = require(BASEDIR .. "spatialhash")
 local Prototypes = require(BASEDIR .. "collidable").Prototypes
 local Helper = require(BASEDIR .. "collidable").Helper
+
 local World = class("pong_world")
 
 function World:init(cell, w, h)
+	self.__isWorld = true
 	self.width = w or love.graphics.getWidth()
 	self.height = h or love.graphics.getHeight()
 	self.cell = cell or 100

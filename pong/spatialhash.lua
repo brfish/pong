@@ -15,6 +15,7 @@ local function AABBDetection(body1, body2)
 end
 
 function SpatialHash:init(cell, w, h)
+	self.__isSpatialHash = true
 	self.width = w or love.graphics.getWidth()
 	self.height = h or love.graphics.getHeight()
 	self.cell = cell or 100
