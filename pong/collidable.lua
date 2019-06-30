@@ -1,7 +1,9 @@
 local BASEDIR = (...):match("(.-)[^%.]+$")
 
 local class = require(BASEDIR .. "class")
+
 local Transform = require(BASEDIR .. "transform")
+local Types = require(BASEDIR .. "type_info")
 
 local vec = {}
 function vec.length(vx, vy)
@@ -38,6 +40,7 @@ end
 local Collidable = class("pong_collidable")
 
 function Collidable:init(transform)
+	self.__isCollidable = true;
 	self.transform = transform
 end
 
@@ -54,15 +57,15 @@ function Collidable:OBB()
 end
 
 function Collidable:center()
-	return self.transform:getPosition()
+	return self.transform:getScreenPosition()
 end
 
 function Collidable:moveTo(x, y)
-	self.transform:setPosition(x, y)
+	self.transform:setScreenPosition(x, y)
 end
 
 function Collidable:move(disX, disY)
-	local cx, cy = self.transform:getPosition()
+	local cx, cy = self.transform:getScreenPosition()
 	self:moveTo(cx + disX, cy + disY)
 end
 
@@ -75,9 +78,14 @@ function Collidable:rotate(angle)
 end
 
 function Collidable:rotateAroundPoint(angle, x, y)
-	local cx, cy = self.transform:getPosition()
+	local cx, cy = self.transform:getScreenPosition()
 	local tx, ty = vec.rotate(cx, cy, angle, x, y)
-	self.transform:setPosition(tx, ty)
+	self.transform:setScreenPosition(tx, ty)
+end
+
+function Collidable:rotateAroundOriginPoint(angle)
+	local ox, oy = self.transform:getOriginPoint()
+	self:rotateAroundPoint(angle, ox, oy)
 end
 
 function Collidable:draw()
@@ -99,13 +107,13 @@ function PnCircle:init(x, y, radius)
 end
 
 function PnCircle:axes()
-	local cx, cy = self.transform:getPosition()
+	local cx, cy = self.transform:getScreenPosition()
 	local x, y = vec.normal(cx, cy)
 	return {{x, y}}
 end
 
 function PnCircle:project(axisX, axisY)
-	local cx, cy = self.transform:getPosition()
+	local cx, cy = self.transform:getScreenPosition()
 	local scale = self.transform:getScale()
 	axisX, axisY = vec.normalize(axisX, axisY)
 	local v = vec.mul(cx, cy, axisX, axisY)
@@ -113,7 +121,7 @@ function PnCircle:project(axisX, axisY)
 end
 
 function PnCircle:AABB()
-	local cx, cy = self.transform:getPosition()
+	local cx, cy = self.transform:getScreenPosition()
 	local scale = self.transform:getScale()
 	return  cx - self.radius * scale,
 			cy - self.radius * scale,
@@ -142,7 +150,7 @@ function PnCircle:draw(drawmode)
 		error("Error: Unknown drawmode - " .. tostring(drawmode))
 		return
 	end
-	local cx, cy = self.transform:getPosition()
+	local cx, cy = self.transform:getScreenPosition()
 	love.graphics.circle(drawmode, cx, cy, self:getRadius())
 end
 
@@ -177,7 +185,7 @@ function PnConvexPolygon:getVertexCounts()
 end
 
 function PnConvexPolygon:getVertex(vertexId)
-	local cx, cy = self.transform:getPosition()
+	local cx, cy = self.transform:getScreenPosition()
 	local scale = self.transform:getScale()
 	local rx, ry = vec.rotate(
 			self.fixedValues[vertexId][1] * scale + cx,
@@ -256,7 +264,7 @@ function PnSegment:init(x1, y1, x2, y2)
 end
 
 function PnSegment:getPoint(id)
-	local cx, cy = self.transform:getPosition()
+	local cx, cy = self.transform:getScreenPosition()
 	local rx, ry = vec.rotate(
 			cx + self.fixedValues[id][1] * scale,
 			cy + self.fixedValues[id][2] * scale,
@@ -273,7 +281,7 @@ function PnSegment:axes()
 end
 
 function PnSegment:project(axisX, axisY)
-	local cx, cy = self.transform:getPositon()
+	local cx, cy = self.transform:getScreenPositon()
 	local t1, t2 = self:getPoint(1)
 	axisX, axisY = vec.normalize(axisX, axisY)
 	local min = vec.mul(t1, t2, axisX, axisY)
@@ -314,34 +322,89 @@ function PnPoint:init(x, y)
 end
 
 function PnPoint:axes()
-	local x, y = self.transform:getPosition()
+	local x, y = self.transform:getScreenPosition()
 	local ax, ay = vec.normal(x, y)
 	return {{ax, ay}}
 end
 
 function PnPoint:project(axisX, axisY)
 	axisX, axisY = vec.normalize(axisX, axisY)
-	local x, y = self.transform:getPosition()
+	local x, y = self.transform:getScreenPosition()
 	local tmp = ve.mul(x, y, axisX, axisY)
 	return {max = tmp, min = tmp}
 end
 
 function PnPoint:AABB()
-	local x, y = self.transform:getPosition()
+	local x, y = self.transform:getScreenPosition()
 	return x, y, x, y
 end
 
 function PnPoint:draw()
-	local x, y = self.transform:getPosition()
+	local x, y = self.transform:getScreenPosition()
 	love.graphics.points(x, y)
 end
 
+
+
+
+
+
+
+local PnCompound = class("pong_PnCompound", Collidable)
+
+function PnCompound:init(x, y)
+	self.super.init(self, Transform.new(x, y))
+	self.collidables = {}
+end
+
+function PnCompound:add(collidable)
+	if not Types.isCollidable(collidable) or collidable.ptype == 5 then
+		error("Fail to add collidable to compound: unaccepted object")
+	end
+	collidable:setOrigin(self:center())
+	self.collidables[#self.collidables + 1] = collidable
+end
+
+function PnCompound:union(compound)
+	if Types.typeinfo(compound) ~= "compound" then
+		error("Fail to union two compounds: the other object is not a compound collidable")
+	end
+	for i = 1, #compound.collidables do
+		local collidable = compound.collidables[i]
+		collidable:setOrgin(self:center())
+		self.collidables[#self.collidables + 1] = collidable
+	end
+end
+
+function PnCompound:remove(collidable)
+	for i = #self.collidables, 1, -1 do
+		if collidable == self.collidables[i] then
+			table.remove(self.collidables, i)
+			return true
+		end
+	end
+	return false
+end
+
+function PnCompound:AABB()
+	local x1, y1, x2, y2 = self.collidables[1]:AABB()
+	for i = 2, #self.collidables do
+		local collidable = self.collidables[i]
+		local a, b, c, d = collidable:AABB()
+		if a < x1 then x1 = a end
+		if b < y1 then y1 = b end
+		if c < x2 then x2 = c end
+		if d < y2 then y2 = d end
+	end
+	return x1, y1, x2, y2
+end
 
 -- collision prototype:
 -- [1] circle
 -- [2] convexpolygon
 -- [3] segment
 -- [4] point
+-- [5] compound
 
 local function createRectangle(x, y, w, h)
 	w = w or 10

@@ -19,6 +19,11 @@ function Transform:setPosition(x, y)
 	self.x, self.y = x, y
 end
 
+function Transform:setOrigin(x, y)
+	self.originX = x or 0
+	self.originY = y or 0
+end
+
 function Transform:setScreenPosition(x, y)
 	x = x - self.originX
 	y = y - self.originY
