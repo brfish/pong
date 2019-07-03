@@ -40,8 +40,9 @@ end
 local Collidable = class("pong_collidable")
 
 function Collidable:init(transform)
-	self.__isCollidable = true;
+	self.__isCollidable = true
 	self.transform = transform
+	self.id = -1
 end
 
 function Collidable:axes()
