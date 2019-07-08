@@ -44,7 +44,7 @@ function Types.typeinfo(obj)
 end
 
 function Types.error(obj, right)
-	error(string.format("Attempt to pass a wrong type: need a %s value instead of %s", typeinfo(right), typeinfo(obj)), 1)
+	error(string.format("Attempt to pass a wrong type: need a %s value instead of %s", Types.typeinfo(right), Types.typeinfo(obj)), 1)
 end
 
 return Types
