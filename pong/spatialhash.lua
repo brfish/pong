@@ -140,31 +140,32 @@ function SpatialHash:collisions(object, filter)
 	end
 	local gridsIndexes = self:getCoveredGrids(object)
 	local collisions = {}
-	local flag = {}
+	local visited = {}
 	filter = filter or self.defaultFilter
 	for i = 1, #gridsIndexes do
 		local g = gridsIndexes[i]
 		for _, v in pairs(self.grids[g.row][g.col]) do
-			if v ~= object and flag[v] ~= true then
+			if v ~= object and object.enabled and visited[v] ~= true then
 				if filter(v) then
 					if Detection.isCollided(object, v) then
 						collisions[#collisions + 1] = v
-						flag[v] = true
+						visited[v] = true
 					end
 				end
 			end
 		end
 	end
-	flag = nil
+	visited = nil
 	return collisions
 end
 
-function SpatialHash:isCollided(object)
+function SpatialHash:isCollided(object, filter)
 	local gridsIndexes = self:getCoveredGrids(object)
+	filter = filter or self.defaultFilter
 	for i = 1, #gridsIndexes do
 		local g = gridsIndexes[i]
 		for _, v in pairs(self.grids[g.row][g.col]) do
-			if v ~= object and Detection.isCollided(object, v) then
+			if v ~= object and filter(v) and Detection.isCollided(object, v) then
 				return true
 			end
 		end

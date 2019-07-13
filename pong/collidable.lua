@@ -43,6 +43,13 @@ function Collidable:init(transform)
 	self.__isCollidable = true
 	self.transform = transform
 	self.id = -1
+	self.world = nil
+	self.enabled = true
+end
+
+function Collidable:setEnabled(e)
+	if type(e) ~= "boolean" then Types.error(e, "boolean") end
+	self.enabled = e
 end
 
 function Collidable:axes()
@@ -62,7 +69,7 @@ function Collidable:center()
 end
 
 function Collidable:moveTo(x, y)
-	self.transform:setScreenPosition(x, y)
+	return self.transform:setScreenPosition(x, y)
 end
 
 function Collidable:move(disX, disY)
@@ -433,7 +440,8 @@ return {
 		Circle 			= 	PnCircle,
 		ConvexPolygon 	= 	PnConvexPolygon,
 		Segment 		= 	PnSegment,
-		Point 			= 	PnPoint
+		Point 			= 	PnPoint,
+		Compound 		= 	PnCompound
 	},
 	Collidable = Collidable,
 	Helper = {
