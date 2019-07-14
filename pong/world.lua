@@ -36,8 +36,8 @@ function World:remove(collidable)
 	if collidable.world ~= self then
 		return false
 	end
-	return self.spatialHash:remove(collidable)
 	collidable.world = nil
+	return self.spatialHash:remove(collidable)
 end
 
 function World:newCircle(x, y, r)
