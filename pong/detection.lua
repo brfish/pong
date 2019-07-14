@@ -1,3 +1,4 @@
+local BASEDIR = (...):match("(.-)[^%.]+$")
 
 local PnDetection = {}
 
@@ -23,21 +24,49 @@ local function pnPointPointCollisionTest(a, b)
 	return ax == bx and ay == by
 end
 
+local function getOverlap(p1, p2)
+	-- 保证p1.length一定小于p2.length --
+	if p1.max - p1.min > p2.max - p2.min then
+		p1, p2 = p2, p1
+	end
+	if p1.max < p2.min or p2.max < p1.min then
+		return 0
+	end
+	if p1.min > p2.min and p1.max < p2.max then
+		return p1.max - p1.min
+	end
+	if p1.min < p2.min and p1.max < p2.max then
+		return p1.max - p2.min
+	end
+	if p1.min > p2.min and p1.max > p2.max then
+		return p2.max - p1.min
+	end
+end
+
 local function pnConvexhullConvexhullCollisionTest(a, b)
 	local axes = a:axes()
 	local tmp = b:axes()
+	local minoverlap = math.huge
+	local minaxis = {0, 0}
 	for i = 1, #tmp do
 		axes[#axes + 1] = tmp[i]
 	end
 	tmp = nil
 	for _, axis in ipairs(axes) do
-		p1 = a:project(axis[1], axis[2])
-		p2 = b:project(axis[1], axis[2])
-		if not (p1.max > p2.min and p1.min < p2.max) then
+		local p1 = a:project(axis[1], axis[2])
+		local p2 = b:project(axis[1], axis[2])
+		local overlap = getOverlap(p1, p2)
+		if overlap == 0 then
 			return false
 		end
+		if overlap < 0 then error("fuck, it's wrong") end
+		if overlap < mino then
+			mino = overlap
+			minaxis[1], minaxis[2] = axis[1], axis[2]
+		end
 	end
-	return true
+	minaxis[1], minaxis[2] = minaxis[1] * mino, minaxis[2] * mino
+	return minaxis
 end
 
 --------------------------------------------------------
