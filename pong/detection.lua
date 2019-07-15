@@ -1,28 +1,8 @@
 local BASEDIR = (...):match("(.-)[^%.]+$")
 
+local vec = require(BASEDIR .. "vector")
+
 local PnDetection = {}
-
-local function pnAABBAABBDetection(a, b)
-	local ax1, ay1, ax2, ay2 = a:AABB()
-	local bx1, by1, bx2, by2 = b:AABB()
-	if ax1 > bx2 or ax2 < bx1 or ay1 > by2 or ay2 < by1 then
-		return false
-	end
-	return true
-end
-
-local function pnCircleCircleCollisionTest(a, b)
-	local ax, ay = a.transform:getPosition()
-	local bx, by = b.transform:getPosition()
-	local dis = (ax - bx) ^ 2 + (ay - by) ^ 2
-	return dis <= (a.radius + b.radius) ^ 2
-end
-
-local function pnPointPointCollisionTest(a, b)
-	local ax, ay = a.transform:getPosition()
-	local bx, by = b.transform:getPosition()
-	return ax == bx and ay == by
-end
 
 local function getOverlap(p1, p2)
 	-- 保证p1.length一定小于p2.length --
@@ -43,29 +23,75 @@ local function getOverlap(p1, p2)
 	end
 end
 
+local function pnAABBAABBDetection(a, b)
+	local ax1, ay1, ax2, ay2 = a:AABB()
+	local bx1, by1, bx2, by2 = b:AABB()
+	if ax1 > bx2 or ax2 < bx1 or ay1 > by2 or ay2 < by1 then
+		return false
+	end
+	return true
+end
+
+local function pnCircleCircleCollisionTest(a, b)
+	local ax, ay = a.transform:getPosition()
+	local bx, by = b.transform:getPosition()
+	local dis = (ax - bx) ^ 2 + (ay - by) ^ 2
+	if dis > (a.radius + b.radius) ^ 2 then
+		return nil
+	end
+	local minaxis = {0, 0}
+	local d = a.radius + b.radius - vec.length(ax - bx, ay - by)
+	minaxis[1], minaxis[2] = vec.normalize(ax - bx, ay - by)
+	minaxis[1], minaxis[2] = minaxis[1] * d, minaxis[2] * d
+	return minaxis
+end
+
+local function pnPointPointCollisionTest(a, b)
+	local ax, ay = a.transform:getPosition()
+	local bx, by = b.transform:getPosition()
+	return ax == bx and ay == by
+end
+
 local function pnConvexhullConvexhullCollisionTest(a, b)
-	local axes = a:axes()
-	local tmp = b:axes()
+	local axes1 = a:axes()
+	local axes2 = b:axes()
 	local minoverlap = math.huge
 	local minaxis = {0, 0}
-	for i = 1, #tmp do
-		axes[#axes + 1] = tmp[i]
-	end
-	tmp = nil
-	for _, axis in ipairs(axes) do
+
+	local acx, acy = a.transform:getScreenPosition()
+	local bcx, bcy = b.transform:getScreenPosition()
+
+	for _, axis in ipairs(axes1) do
 		local p1 = a:project(axis[1], axis[2])
 		local p2 = b:project(axis[1], axis[2])
 		local overlap = getOverlap(p1, p2)
 		if overlap == 0 then
-			return false
+			return nil
 		end
-		if overlap < 0 then error("fuck, it's wrong") end
-		if overlap < mino then
-			mino = overlap
+		if overlap < minoverlap then
+			minoverlap = overlap
 			minaxis[1], minaxis[2] = axis[1], axis[2]
 		end
 	end
-	minaxis[1], minaxis[2] = minaxis[1] * mino, minaxis[2] * mino
+	for _, axis in ipairs(axes2) do
+		local p1 = a:project(axis[1], axis[2])
+		local p2 = b:project(axis[1], axis[2])
+		local overlap = getOverlap(p1, p2)
+		if overlap == 0 then
+			return nil
+		end
+		if overlap < minoverlap then
+			minoverlap = overlap
+			minaxis[1], minaxis[2] = axis[1], axis[2]
+		end
+	end
+	minaxis[1] = math.abs(minaxis[1])
+	minaxis[2] = math.abs(minaxis[2])
+	minaxis[1], minaxis[2] = minaxis[1] * minoverlap, minaxis[2] * minoverlap
+	
+	if acx < bcx then minaxis[1] = -minaxis[1] end
+	if acy < bcy then minaxis[2] = -minaxis[2] end
+
 	return minaxis
 end
 
@@ -122,7 +148,7 @@ matchTable[5][5] = pnCompoundCompoundCollisionTest
 
 function PnDetection.isCollided(a, b)
 	if not pnAABBAABBDetection(a, b) then
-		return false
+		return nil
 	end
 
 	local type1 = a.ptype

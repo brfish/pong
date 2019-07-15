@@ -15,11 +15,20 @@ function Collidable:init(transform)
 	self.id = -1
 	self.world = nil
 	self.enabled = true
+	self.response = "obstruct"
+	-- 内置response方法 --
+	-- [1]obstruct 物体无法穿越 --
+	-- [2]cross    物体可以自由穿过 --
 end
 
 function Collidable:setEnabled(e)
 	if type(e) ~= "boolean" then Types.error(e, "boolean") end
 	self.enabled = e
+end
+
+function Collidable:setResponse(r)
+	if r ~= "obstruct" and r ~= "cross" then return end
+	self.response = r
 end
 
 function Collidable:axes()
@@ -39,12 +48,29 @@ function Collidable:center()
 end
 
 function Collidable:moveTo(x, y)
-	return self.transform:setScreenPosition(x, y)
+	if not self.world then
+		self.transform:setScreenPosition(x, y)
+	end
+	self.transform:setScreenPosition(x, y)
+	if type(self.response) == "string" then
+		if self.response == "obstruct" then
+			local collisions = self.world:collisions(self)
+			local MSV = {0, 0}
+			for i = 1, #collisions do
+				MSV[1] = MSV[1] + collisions[i][2][1]
+				MSV[2] = MSV[2] + collisions[i][2][2]
+			end
+			x = x + MSV[1]
+			y = y + MSV[2]
+		end
+	end
+	self.transform:setScreenPosition(x, y)
+	return x, y
 end
 
 function Collidable:move(disX, disY)
 	local cx, cy = self.transform:getScreenPosition()
-	self:moveTo(cx + disX, cy + disY)
+	return self:moveTo(cx + disX, cy + disY)
 end
 
 function Collidable:scale(sx, sy)
@@ -53,6 +79,20 @@ end
 
 function Collidable:rotate(angle)
 	self.transform:rotate(angle)
+	local x, y = self.transform:getScreenPosition()
+	if type(self.response) == "string" then
+		if self.response == "obstruct" then
+			local collisions = self.world:collisions(self)
+			local MSV = {0, 0}
+			for i = 1, #collisions do
+				MSV[1] = MSV[1] + collisions[i][2][1]
+				MSV[2] = MSV[2] + collisions[i][2][2]
+			end
+			x = x + MSV[1]
+			y = y + MSV[2]
+		end
+	end
+	self.transform:setScreenPosition(x, y)
 end
 
 function Collidable:rotateAroundPoint(angle, x, y)

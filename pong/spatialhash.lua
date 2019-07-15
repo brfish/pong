@@ -147,8 +147,9 @@ function SpatialHash:collisions(object, filter)
 		for _, v in pairs(self.grids[g.row][g.col]) do
 			if v ~= object and object.enabled and visited[v] ~= true then
 				if filter(v) then
-					if Detection.isCollided(object, v) then
-						collisions[#collisions + 1] = v
+					local MSV = Detection.isCollided(object, v)
+					if MSV then
+						collisions[#collisions + 1] = {v, MSV}
 						visited[v] = true
 					end
 				end

@@ -23,6 +23,14 @@ function vec.rotate(vx, vy, phi, x, y)
 	return vx, vy
 end
 
+function vec.add(vx1, vy1, vx2, vy2)
+	return vx1 + vx2, vy1 + vy2
+end
+
+function vec.sub(vx1, vy1, vx2, vy2)
+	return vx1 - vx2, vy1 - vy2
+end
+
 function vec.mul(vx1, vy1, vx2, vy2)
 	return vx1 * vx2 + vy1 * vy2
 end
